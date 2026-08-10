@@ -1,0 +1,58 @@
+name: Agent Post-Merge
+
+# After a change lands on the default branch: update stale documentation,
+# refresh the Graphify codebase graph, and open a pull request with the result.
+# Never pushes to the default branch — you review and merge every change.
+#
+# Requires repository secret CLAUDE_CODE_OAUTH_TOKEN (see: claude setup-token).
+#
+# One-time setup: Settings → Actions → General → Workflow permissions →
+# enable "Allow GitHub Actions to create and approve pull requests".
+
+on:
+  push:
+    branches: [master] # change if your default branch is named differently
+  workflow_dispatch: # lets you trigger a docs sync by hand
+
+concurrency:
+  group: agent-post-merge
+  cancel-in-progress: false # let an in-flight docs sync finish
+
+jobs:
+  wrapup:
+    # The docs-updater tags its own commits with [skip-agents]. Without this
+    # guard, merging its pull request retriggers this workflow in a loop.
+    if: "!contains(github.event.head_commit.message, '[skip-agents]')"
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write # commit docs to a new branch
+      pull-requests: write # open the pull request
+      id-token: write # required by claude-code-action
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # needs the previous commit to diff against
+
+      - name: Install Graphify
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/uv" tool install graphifyy
+
+      - name: Update docs and refresh the graph
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: >-
+            /wrapup --ci
+            --base ${{ github.event.before }}
+            --head ${{ github.sha }}
+          claude_args: |
+            --max-turns 50
+            --allowedTools "Read,Grep,Glob,Bash,Edit,Write,Agent,Skill"

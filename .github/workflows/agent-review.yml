@@ -1,0 +1,55 @@
+name: Agent Review Panel
+
+# Fans out to the security, correctness, architecture, and teaching agents,
+# then posts ONE synthesized verdict as a pull request comment.
+#
+# Requires repository secret CLAUDE_CODE_OAUTH_TOKEN (see: claude setup-token).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# A new push supersedes the in-flight review of the old commit.
+concurrency:
+  group: agent-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  panel:
+    # Skip drafts, and skip forks: GitHub withholds secrets from fork pull
+    # requests, so the run would fail on authentication anyway. Removing this
+    # guard on a public repository would also let an outside contributor's
+    # diff influence an agent that has shell access. Leave it in place.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read # read the diff
+      pull-requests: write # post the verdict comment
+      id-token: write # required by claude-code-action
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history: the panel computes a merge base to scope the diff.
+          fetch-depth: 0
+
+      - name: Run the review panel
+        uses: anthropics/claude-code-action@v1
+        env:
+          # Lets the panel post its verdict with `gh pr comment`.
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: >-
+            /panel --ci
+            --pr ${{ github.event.pull_request.number }}
+            --base ${{ github.event.pull_request.base.sha }}
+            --head ${{ github.event.pull_request.head.sha }}
+          claude_args: |
+            --max-turns 60
+            --allowedTools "Read,Grep,Glob,Bash,Agent,Skill"
