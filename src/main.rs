@@ -25,11 +25,13 @@ impl fmt::Display for EsvResponse {
 }
 
 impl EsvResponse {
-    pub fn format_into_string(&self) -> String {
-        for passage in &self.passages {
-            println!("{:?}", passage);
+    pub fn format_to_string(&self) -> String {
+        if let Some(first_passage) = self.passages.first() {
+            for part in first_passage.split('[') {
+                println!("{:?}", part);
+            }
         }
-        "hi".to_string()
+        "hello".to_string()
     }
 }
 
@@ -47,9 +49,9 @@ async fn main() {
         url: "https://api.esv.org/v3/passage/text/".to_string(),
     };
 
-    let wanted_verses = connection.request_verse("Genesis 1:1-10").await;
+    let wanted_verses: EsvResponse = connection.request_verse("Genesis 1:1-10").await;
+    wanted_verses.format_to_string();
     println!("{:#?}", wanted_verses);
-    EsvResponse::format_into_string();
 }
 
 pub struct BibleAPIConnection {
@@ -58,7 +60,7 @@ pub struct BibleAPIConnection {
 }
 
 impl BibleAPIConnection {
-    pub async fn request_verse(&self, verse_query: &str) -> Vec<String> {
+    pub async fn request_verse(&self, verse_query: &str) -> EsvResponse {
         let client = reqwest::Client::new();
         let response = client
             .get(&self.url)
@@ -69,7 +71,7 @@ impl BibleAPIConnection {
             .expect("Failed to fetch");
 
         let body: EsvResponse = response.json().await.expect("Failed to read body");
-        return body.passages
+        return body;
     }
 
 }
