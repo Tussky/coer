@@ -1,0 +1,71 @@
+name: Agent Review Panel (push)
+
+# Same panel as agent-review.yml, but for commits pushed straight to a
+# branch that has no open pull request yet — `agent-review.yml` only fires
+# on pull_request events, so a branch with no PR would otherwise never get
+# reviewed until one is opened.
+#
+# claude-code-action rejects the `push` event directly ("Unsupported event
+# type: push"), so this workflow only uses `push` to decide whether to run,
+# then invokes the action itself via workflow_dispatch-style prompt args —
+# same mechanism as agent-review.yml, just triggered differently and
+# posting a commit comment instead of a PR comment.
+#
+# Requires repository secret CLAUDE_CODE_OAUTH_TOKEN (see: claude setup-token).
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - master
+
+concurrency:
+  group: agent-review-push-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-pr:
+    runs-on: ubuntu-latest
+    outputs:
+      has_pr: ${{ steps.check.outputs.has_pr }}
+    permissions:
+      pull-requests: read
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh pr list --repo "${{ github.repository }}" \
+            --head "${{ github.ref_name }}" --state open --json number --jq 'length')
+          echo "has_pr=$count" >> "$GITHUB_OUTPUT"
+
+  panel:
+    needs: check-pr
+    # An open PR means agent-review.yml already covers this push via the
+    # pull_request `synchronize` event — don't review it twice.
+    if: needs.check-pr.outputs.has_pr == '0'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write # post a commit comment
+      id-token: write # required by claude-code-action
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run the review panel
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: >-
+            /panel --ci
+            --commit ${{ github.sha }}
+          claude_args: |
+            --max-turns 60
+            --allowedTools "Read,Grep,Glob,Bash,Agent,Skill"

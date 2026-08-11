@@ -146,4 +146,12 @@ Write the verdict to a temporary file first and pass `--body-file`; do not inlin
 
 Post **one comment per run**. If a previous panel comment exists on this PR, edit it rather than adding another — a PR with nine review comments from a bot is noise. Find it with `gh pr view <number> --json comments` and look for the `## Review panel —` heading, then `gh api --method PATCH /repos/{owner}/{repo}/issues/comments/<id> -f body=@<file>`.
 
+**In CI, no open PR** (invoked with `--ci --commit <sha>`): this is a direct push to a branch with no pull request yet, so there is nothing to attach a PR comment to. Post the verdict as a commit comment instead, then stop.
+
+```bash
+gh api repos/{owner}/{repo}/commits/<sha>/comments -f body=@<path-to-verdict>
+```
+
+Same dedup rule: check for an existing panel comment on that commit first (`gh api repos/{owner}/{repo}/commits/<sha>/comments`, look for the `## Review panel —` heading) and `PATCH /repos/{owner}/{repo}/comments/<id>` instead of posting a new one.
+
 **Locally:** print the verdict to the terminal. Then add one closing line, outside the verdict block, naming the single thing you would fix first and offering to explain any finding in more depth. Do not offer to fix it yourself unless asked.

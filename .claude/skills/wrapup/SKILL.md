@@ -10,7 +10,14 @@ Delegate to the **`docs-updater`** agent.
 
 Work out what landed before dispatching, so the agent gets a precise range rather than guessing:
 
-- **In CI on a push to the default branch** — the range is the pushed commit against its parent, or the merge base for a merge commit.
+- **`--base` and `--head` were both passed** — use them. This is how CI calls you after a pull
+  request merges.
+- **Only one, or neither, was passed** — this is a manual run (`workflow_dispatch` supplies no
+  pull request, so the `--base` placeholder expands to nothing). Fall back to the last merge:
+  `git diff HEAD~1 HEAD`, or `git log --merges -1` to find the most recent merge commit and diff
+  against its first parent.
+- **No commits at all** — the repository's first commit has not happened. Nothing to sync; say so
+  and stop.
 - **Locally** — the most recent merge, or whatever range the human named after `/wrapup`.
 
 Brief the agent with:

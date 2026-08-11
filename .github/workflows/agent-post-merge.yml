@@ -1,8 +1,16 @@
 name: Agent Post-Merge
 
-# After a change lands on the default branch: update stale documentation,
-# refresh the Graphify codebase graph, and open a pull request with the result.
-# Never pushes to the default branch — you review and merge every change.
+# After a pull request merges: update stale documentation, refresh the Graphify
+# codebase graph, and open a pull request with the result. Never pushes to the
+# default branch — you review and merge every change.
+#
+# NOTE: this deliberately does NOT trigger on `push`. claude-code-action rejects
+# the push event with "Unsupported event type: push". Supported events are:
+#   issues, issue_comment, pull_request, pull_request_target,
+#   pull_request_review, pull_request_review_comment,
+#   workflow_dispatch, repository_dispatch, schedule, workflow_run
+# `pull_request: [closed]` + a merged check is the correct "after merge" hook,
+# and it carries PR context a raw push does not.
 #
 # Requires repository secret CLAUDE_CODE_OAUTH_TOKEN (see: claude setup-token).
 #
@@ -10,9 +18,9 @@ name: Agent Post-Merge
 # enable "Allow GitHub Actions to create and approve pull requests".
 
 on:
-  push:
-    branches: [master] # change if your default branch is named differently
-  workflow_dispatch: # lets you trigger a docs sync by hand
+  pull_request:
+    types: [closed]
+  workflow_dispatch: # trigger a docs sync by hand
 
 concurrency:
   group: agent-post-merge
@@ -20,9 +28,13 @@ concurrency:
 
 jobs:
   wrapup:
-    # The docs-updater tags its own commits with [skip-agents]. Without this
+    # `closed` fires on both merge and abandon — only act on a real merge.
+    # The docs-updater tags its own commits with [skip-agents]; without that
     # guard, merging its pull request retriggers this workflow in a loop.
-    if: "!contains(github.event.head_commit.message, '[skip-agents]')"
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       !contains(github.event.pull_request.title, '[skip-agents]'))
 
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -35,7 +47,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0 # needs the previous commit to diff against
+          # Check out the branch that was merged INTO, not the PR merge ref —
+          # after a merge the docs must be written against the updated base.
+          ref: ${{ github.event.pull_request.base.ref || github.ref_name }}
+          fetch-depth: 0
 
       - name: Install Graphify
         run: |
@@ -51,8 +66,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: >-
             /wrapup --ci
-            --base ${{ github.event.before }}
-            --head ${{ github.sha }}
+            --base ${{ github.event.pull_request.base.sha }}
+            --head ${{ github.event.pull_request.merge_commit_sha || github.sha }}
           claude_args: |
             --max-turns 50
             --allowedTools "Read,Grep,Glob,Bash,Edit,Write,Agent,Skill"

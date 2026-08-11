@@ -2,7 +2,13 @@ mod config;
 use std::fmt;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
+use regex::Regex;
 
+
+pub struct Memory {
+    pub verse: String,
+    pub stats: Vec<String>,
+}
 
 #[derive(Deserialize, Debug)]
 pub struct EsvResponse {
@@ -15,6 +21,15 @@ impl fmt::Display for EsvResponse {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{}", self.canonical)?;
         write!(f, "{}", self.passages.join("\n"))
+    }
+}
+
+impl EsvResponse {
+    pub fn format_into_string(&self) -> String {
+        for passage in &self.passages {
+            println!("{:?}", passage);
+        }
+        "hi".to_string()
     }
 }
 
@@ -32,7 +47,9 @@ async fn main() {
         url: "https://api.esv.org/v3/passage/text/".to_string(),
     };
 
-    connection.request_verse("Jeremiah 29:11").await;
+    let wanted_verses = connection.request_verse("Genesis 1:1-10").await;
+    println!("{:#?}", wanted_verses);
+    EsvResponse::format_into_string();
 }
 
 pub struct BibleAPIConnection {
@@ -41,7 +58,7 @@ pub struct BibleAPIConnection {
 }
 
 impl BibleAPIConnection {
-    pub async fn request_verse(&self, verse_query: &str) {
+    pub async fn request_verse(&self, verse_query: &str) -> Vec<String> {
         let client = reqwest::Client::new();
         let response = client
             .get(&self.url)
@@ -52,6 +69,7 @@ impl BibleAPIConnection {
             .expect("Failed to fetch");
 
         let body: EsvResponse = response.json().await.expect("Failed to read body");
-        println!("{}", body);
+        return body.passages
     }
+
 }
