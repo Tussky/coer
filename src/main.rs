@@ -1,14 +1,43 @@
 mod config;
 use std::fmt;
 use secrecy::{ExposeSecret, SecretString};
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use regex::Regex;
 use std::collections::HashMap;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Memory {
-    pub stats: Vec<String>,
+    pub stats: HashMap<String, String>,
     pub chapter_header: String,
+    pub verse_header: String,
     pub verses: HashMap<u8, String>,
+}
+
+impl Memory {
+    pub fn write_to_json(&self) {
+        let json = serde_json::to_string_pretty(self).expect("Serialize failed");
+        let path = format!("{}/data/{}.json", env!("CARGO_MANIFEST_DIR"), self.verse_header);
+        std::fs::write(path, json).expect("Write failed");
+    }
+}
+
+impl From<EsvResponse> for Memory {
+    fn from(response: EsvResponse) -> Self {
+        let sections = response.split_response();
+        let verse_regex = Regex::new(r"\[(\d+)\] ([^\[]+) ").expect("Failed to compile verse regex");
+        let mut verses = HashMap::new();
+
+        for cap in verse_regex.captures_iter(&sections[2]) {
+            verses.insert(cap[1].parse::<u8>().expect("Expected a verse number - could not parse"), cap[2].to_string());
+        }
+
+        Memory {
+            stats: HashMap::new(),
+            chapter_header: sections[1].clone(),
+            verse_header: sections[0].clone(),
+            verses: verses,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -36,23 +65,16 @@ impl EsvResponse {
         verses
     }
 
-    pub fn remove_footnotes(&self) {
-        let footer_regex_removal = Regex::new(r"Footnotes\n\n.*").expect("Footer regex did not compile");
+    pub fn split_response(&self) -> Vec<String> {
+        let sections: Vec<String>  = self.passages.first().expect("Could not find first element in ESVResponse").split("\n\n").map(|s| s.to_string()).collect();
 
-        match footer_regex_removal.replace(self.passages.first().expect("Failed to get first element in chapter footer capture"), "") {
-            Some(cleaned) => {self.passages[0] = cleaned;}
-            None => {panic!("Did not find footnotes!");}
+        let mut verses = String::new();
+        let mut i = 2;
+        while sections[i] != "Footnotes" {
+            verses.push_str(&sections[i]);
+            i += 1;
         }
-    }
-
-
-    pub fn get_chapter_header(&self) -> String {
-        let heading_regex = Regex::new(r"^[^\n]+\n\n([^\n]+)\n\n").expect("Failed to compile Regex");
-
-        match heading_regex.captures(self.passages.first().expect("Failed to get first element in chapter_header capture")) {
-            Some(caps) => {return caps[1].to_string()}
-            None => {panic!("Capture cannot be empty for chapter_header");}
-        }
+        vec![sections[0].clone(), sections[1].clone(), verses]
     }
 }
 
@@ -70,10 +92,9 @@ async fn main() {
         url: "https://api.esv.org/v3/passage/text/".to_string(),
     };
 
-    let wanted_verses: EsvResponse = connection.request_verse("Matthew 1:1-5").await;
-    let header = wanted_verses.get_chapter_header();
-    let verses = wanted_verses.get_verses();
-    dbg!(verses);
+    let query: EsvResponse = connection.request_verse("Matthew 1:1-5").await;
+    let test_memory: Memory = query.into();
+    test_memory.write_to_json();
 }
 
 pub struct BibleAPIConnection {
@@ -95,5 +116,4 @@ impl BibleAPIConnection {
         let body: EsvResponse = response.json().await.expect("Failed to read body");
         return body;
     }
-
 }
