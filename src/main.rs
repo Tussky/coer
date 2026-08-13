@@ -27,13 +27,22 @@ impl fmt::Display for EsvResponse {
 
 impl EsvResponse {
     pub fn get_verses(&self) -> HashMap<u8, String> {
-        let verse_regex = Regex::new(r"\[(\d+)\] ([^\[]+) \[").expect("Failed to compile verse regex");
+        let verse_regex = Regex::new(r"\[(\d+)\] ([^\[]+) ").expect("Failed to compile verse regex");
         let mut verses = HashMap::new();
 
         for cap in verse_regex.captures_iter(self.passages.first().expect("Failed to find first passage")) {
             verses.insert(cap[1].parse::<u8>().expect("Expected a verse number - could not parse"), cap[2].to_string());
         }
         verses
+    }
+
+    pub fn remove_footnotes(&self) {
+        let footer_regex_removal = Regex::new(r"Footnotes\n\n.*").expect("Footer regex did not compile");
+
+        match footer_regex_removal.replace(self.passages.first().expect("Failed to get first element in chapter footer capture"), "") {
+            Some(cleaned) => {self.passages[0] = cleaned;}
+            None => {panic!("Did not find footnotes!");}
+        }
     }
 
 
@@ -61,7 +70,7 @@ async fn main() {
         url: "https://api.esv.org/v3/passage/text/".to_string(),
     };
 
-    let wanted_verses: EsvResponse = connection.request_verse("Matthew 1:1-30").await;
+    let wanted_verses: EsvResponse = connection.request_verse("Matthew 1:1-5").await;
     let header = wanted_verses.get_chapter_header();
     let verses = wanted_verses.get_verses();
     dbg!(verses);
