@@ -1,8 +1,6 @@
 use std::fmt;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
-use regex::Regex;
-use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
 pub struct EsvResponse {
