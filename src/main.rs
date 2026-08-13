@@ -3,11 +3,12 @@ use std::fmt;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use regex::Regex;
-
+use std::collections::HashMap;
 
 pub struct Memory {
-    pub verse: String,
     pub stats: Vec<String>,
+    pub chapter_header: String,
+    pub verses: HashMap<u8, String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -25,13 +26,24 @@ impl fmt::Display for EsvResponse {
 }
 
 impl EsvResponse {
-    pub fn format_to_string(&self) -> String {
-        if let Some(first_passage) = self.passages.first() {
-            for part in first_passage.split('[') {
-                println!("{:?}", part);
-            }
+    pub fn get_verses(&self) -> HashMap<u8, String> {
+        let verse_regex = Regex::new(r"\[(\d+)\] ([^\[]+) \[").expect("Failed to compile verse regex");
+        let mut verses = HashMap::new();
+
+        for cap in verse_regex.captures_iter(self.passages.first().expect("Failed to find first passage")) {
+            verses.insert(cap[1].parse::<u8>().expect("Expected a verse number - could not parse"), cap[2].to_string());
         }
-        "hello".to_string()
+        verses
+    }
+
+
+    pub fn get_chapter_header(&self) -> String {
+        let heading_regex = Regex::new(r"^[^\n]+\n\n([^\n]+)\n\n").expect("Failed to compile Regex");
+
+        match heading_regex.captures(self.passages.first().expect("Failed to get first element in chapter_header capture")) {
+            Some(caps) => {return caps[1].to_string()}
+            None => {panic!("Capture cannot be empty for chapter_header");}
+        }
     }
 }
 
@@ -49,9 +61,10 @@ async fn main() {
         url: "https://api.esv.org/v3/passage/text/".to_string(),
     };
 
-    let wanted_verses: EsvResponse = connection.request_verse("Genesis 1:1-10").await;
-    wanted_verses.format_to_string();
-    println!("{:#?}", wanted_verses);
+    let wanted_verses: EsvResponse = connection.request_verse("Matthew 1:1-30").await;
+    let header = wanted_verses.get_chapter_header();
+    let verses = wanted_verses.get_verses();
+    dbg!(verses);
 }
 
 pub struct BibleAPIConnection {
