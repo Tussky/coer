@@ -1,6 +1,9 @@
 # Build output
 /target
 
+# User data 
+/data
+
 # Secrets — never commit these.
 # The ESV API token belongs in .env, loaded at runtime via std::env::var.
 # A committed secret stays in git history forever, even if a later commit
@@ -12,3 +15,4 @@
 # Local editor / OS noise
 *.swp
 .DS_Store
+/.claude
