@@ -1,6 +1,7 @@
 mod config;
 mod esv;
 mod memory;
+mod storage;
 
 use secrecy::SecretString;
 
