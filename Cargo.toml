@@ -1,3 +1,7 @@
+[workspace]
+members = ["views/cli", "views/web"]
+
+
 [package]
 name = "coer"
 version = "0.1.0"
