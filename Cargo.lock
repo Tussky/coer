@@ -100,6 +100,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cli"
+version = "0.1.0"
+
+[[package]]
 name = "cmake"
 version = "0.1.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1569,6 +1573,10 @@ checksum = "dc1b4cb0cc549fcf58d7dfc081778139b3d283a081644e833e84682ad71cea24"
 dependencies = [
  "unicode-ident",
 ]
+
+[[package]]
+name = "web"
+version = "0.1.0"
 
 [[package]]
 name = "web-sys"

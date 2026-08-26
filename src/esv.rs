@@ -1,6 +1,6 @@
-use std::fmt;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
+use std::fmt;
 
 #[derive(Deserialize, Debug)]
 pub struct EsvResponse {
@@ -18,7 +18,13 @@ impl fmt::Display for EsvResponse {
 
 impl EsvResponse {
     pub fn split_response(&self) -> Vec<String> {
-        let sections: Vec<String>  = self.passages.first().expect("Could not find first element in ESVResponse").split("\n\n").map(|s| s.to_string()).collect();
+        let sections: Vec<String> = self
+            .passages
+            .first()
+            .expect("Could not find first element in ESVResponse")
+            .split("\n\n")
+            .map(|s| s.to_string())
+            .collect();
 
         let mut verses = String::new();
         let mut i = 2;
@@ -40,7 +46,10 @@ impl BibleAPIConnection {
         let client = reqwest::Client::new();
         let response = client
             .get(&self.url)
-            .header("Authorization", format!("Token {}", self.api_key.expose_secret()))
+            .header(
+                "Authorization",
+                format!("Token {}", self.api_key.expose_secret()),
+            )
             .query(&[("q", verse_query)])
             .send()
             .await
