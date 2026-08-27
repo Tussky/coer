@@ -2,7 +2,6 @@ mod config;
 mod esv;
 mod memory;
 mod storage;
-
 use secrecy::SecretString;
 
 use crate::esv::{BibleAPIConnection, EsvResponse};
@@ -11,6 +10,9 @@ use crate::memory::Memory;
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
+
+    let storage_dir: String =
+        std::env::var("COER_DATA_DIR").expect("Unable to find storage location");
 
     let api_key = SecretString::from(
         std::env::var(config::AUTH_TOKEN_ENV_VAR)
