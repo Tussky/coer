@@ -16,10 +16,12 @@ pub struct SQLStorage {
 }
 
 impl JsonStorage {
-    /// Path a memory is stored at, with characters that are illegal in filenames replaced.
-    fn file_for(&self, key: &str) -> PathBuf {
+    /// Path a memory is stored at: "Matthew 1:1-5" -> `<dir>/Matthew1_1-5.json`.
+    /// Spaces are dropped and filename-illegal characters replaced with `_`.
+    fn path_for(&self, key: &str) -> PathBuf {
         let safe: String = key
             .chars()
+            .filter(|c| !c.is_whitespace())
             .map(|c| match c {
                 '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
                 other => other,
@@ -33,7 +35,7 @@ impl Storage for JsonStorage {
     fn store(&self, to_save: &Memory) -> Result<(), std::io::Error> {
         let json = serde_json::to_string_pretty(to_save).map_err(std::io::Error::other)?;
         std::fs::create_dir_all(&self.path)?;
-        std::fs::write(self.file_for(&to_save.verse_header), json)
+        std::fs::write(self.path_for(&to_save.verse_header), json)
     }
 
     fn read(&self, file_loc: String) -> Result<Memory, Box<dyn std::error::Error>> {
@@ -41,7 +43,7 @@ impl Storage for JsonStorage {
         let path = if Path::new(&file_loc).is_file() {
             PathBuf::from(&file_loc)
         } else {
-            self.file_for(&file_loc)
+            self.path_for(&file_loc)
         };
 
         let json = std::fs::read_to_string(path)?;
