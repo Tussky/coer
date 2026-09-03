@@ -1,7 +1,21 @@
 [package]
-name = "cli"
-version = "0.1.0"
-edition = "2024"
+name = "coer-cli"
+version.workspace = true
+edition.workspace = true
 
+# The binary is `coer`, not `coer-cli`.
+[[bin]]
+name = "coer"
+path = "src/main.rs"
+
+# A view is the one place that names concrete backends, and the only place
+# that does process setup (.env, the terminal, the runtime).
 [dependencies]
-ratatui = "0.30"
+coer-controller = { workspace = true }
+coer-model      = { workspace = true }
+coer-storage    = { workspace = true, features = ["json"] }
+coer-esv        = { workspace = true }
+
+dotenvy  = { workspace = true }
+ratatui  = "0.30"
+tokio    = { workspace = true }

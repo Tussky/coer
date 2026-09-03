@@ -1,0 +1,15 @@
+[package]
+name = "coer-storage"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = ["json"]
+json = ["dep:serde_json"]
+# When SqliteStorage lands it goes behind a `sqlite` feature here, so the CLI
+# never compiles sqlx and the web app never compiles what it does not use.
+
+[dependencies]
+coer-model  = { workspace = true }
+directories = { workspace = true }
+serde_json  = { workspace = true, optional = true }

@@ -1,4 +1,19 @@
 [package]
-name = "web"
-version = "0.1.0"
-edition = "2024"
+name = "coer-web"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "coer-web"
+path = "src/main.rs"
+
+# Same controller, same ports. When SqliteStorage exists, this is the line that
+# changes — and nothing in crates/ has to notice.
+[dependencies]
+coer-controller = { workspace = true }
+coer-model      = { workspace = true }
+coer-storage    = { workspace = true, features = ["json"] }
+coer-esv        = { workspace = true }
+
+dotenvy = { workspace = true }
+tokio   = { workspace = true }

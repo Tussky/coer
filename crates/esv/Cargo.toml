@@ -1,0 +1,12 @@
+[package]
+name = "coer-esv"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+coer-model = { workspace = true }
+regex      = { workspace = true }
+reqwest    = { workspace = true }
+secrecy    = { workspace = true }
+serde      = { workspace = true }
+thiserror  = { workspace = true }
