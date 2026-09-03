@@ -32,7 +32,7 @@ impl From<EsvResponse> for Memory {
             stats: HashMap::new(),
             chapter_header: sections[1].clone(),
             verse_header: sections[0].clone(),
-            verses: verses,
+            verses,
         }
     }
 }
