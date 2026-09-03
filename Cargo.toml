@@ -1,18 +1,27 @@
 [workspace]
-members = ["views/cli", "views/web"]
+resolver = "3"
+members = ["crates/*", "views/*"]
+# `cargo run` with no -p starts the CLI.
+default-members = ["views/cli"]
 
-
-[package]
-name = "coer"
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+# Every shared version is pinned here, once. Members write
+# `serde = { workspace = true }` so a bump happens in one place.
+[workspace.dependencies]
+coer-model      = { path = "crates/model" }
+coer-controller = { path = "crates/controller" }
+coer-storage    = { path = "crates/storage" }
+coer-esv        = { path = "crates/esv" }
+
 directories = "6.0.0"
-dotenvy = "0.15.7"
-regex = "1.13.1"
-reqwest = { version = "0.13.4", features = ["json", "query"] }
-secrecy = "0.10.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.151"
-tokio = { version = "1.53.1", features = ["full"] }
+dotenvy     = "0.15.7"
+regex       = "1.13.1"
+reqwest     = { version = "0.13.4", features = ["json", "query"] }
+secrecy     = "0.10.3"
+serde       = { version = "1.0", features = ["derive"] }
+serde_json  = "1.0.151"
+thiserror   = "2.0"
+tokio       = { version = "1.53.1", features = ["full"] }

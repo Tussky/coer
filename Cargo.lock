@@ -187,13 +187,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "ratatui",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -203,16 +196,65 @@ dependencies = [
 ]
 
 [[package]]
-name = "coer"
+name = "coer-cli"
 version = "0.1.0"
 dependencies = [
- "directories",
+ "coer-controller",
+ "coer-esv",
+ "coer-model",
+ "coer-storage",
  "dotenvy",
+ "ratatui",
+ "tokio",
+]
+
+[[package]]
+name = "coer-controller"
+version = "0.1.0"
+dependencies = [
+ "coer-model",
+ "thiserror 2.0.19",
+ "tokio",
+]
+
+[[package]]
+name = "coer-esv"
+version = "0.1.0"
+dependencies = [
+ "coer-model",
  "regex",
  "reqwest",
  "secrecy",
  "serde",
+ "thiserror 2.0.19",
+]
+
+[[package]]
+name = "coer-model"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.19",
+]
+
+[[package]]
+name = "coer-storage"
+version = "0.1.0"
+dependencies = [
+ "coer-model",
+ "directories",
  "serde_json",
+]
+
+[[package]]
+name = "coer-web"
+version = "0.1.0"
+dependencies = [
+ "coer-controller",
+ "coer-esv",
+ "coer-model",
+ "coer-storage",
+ "dotenvy",
  "tokio",
 ]
 
@@ -2732,10 +2774,6 @@ checksum = "dc1b4cb0cc549fcf58d7dfc081778139b3d283a081644e833e84682ad71cea24"
 dependencies = [
  "unicode-ident",
 ]
-
-[[package]]
-name = "web"
-version = "0.1.0"
 
 [[package]]
 name = "web-sys"

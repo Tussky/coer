@@ -1,0 +1,14 @@
+[package]
+name = "coer-controller"
+version.workspace = true
+edition.workspace = true
+
+# Depends on the ports, never on an adapter that implements them.
+[dependencies]
+coer-model = { workspace = true }
+thiserror  = { workspace = true }
+
+# Only the tests need a runtime to poll futures on. Dev-dependencies do not
+# reach anything that depends on this crate.
+[dev-dependencies]
+tokio = { workspace = true }

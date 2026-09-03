@@ -16,7 +16,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    # --workspace is required: the root is a virtual manifest with
+    # default-members = ["views/cli"], so a bare `cargo build` would only
+    # cover the CLI and silently skip every library crate and its tests.
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --workspace --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --workspace --verbose
+    - name: Clippy
+      run: cargo clippy --workspace --all-targets -- -D warnings
+    - name: Formatting
+      run: cargo fmt --all --check
